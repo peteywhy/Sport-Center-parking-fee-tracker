@@ -1,0 +1,701 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sport Center Parking Fee Tracker</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        /* Base styles to ensure body fills viewport and prevents main scroll */
+        html, body {
+            height: 100%; /* Important for full height */
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            background-color: #1a202c; /* Consistent dark background */
+            overflow: hidden; /* Prevent body scrolling */
+        }
+        body {
+            display: flex;
+            flex-direction: column; /* Stack children vertically */
+            font-family: 'Inter', sans-serif;
+        }
+
+        /* Main content area, takes available vertical space and centers the card */
+        .main-content-area {
+            flex-grow: 1; /* Allows this div to grow and take available space */
+            display: flex;
+            align-items: center; /* Center content vertically */
+            justify-content: center; /* Center content horizontally */
+            overflow: hidden; /* Crucial to contain content without making body scroll */
+            padding: 1rem; /* Added padding to ensure content isn't flush with edges */
+        }
+
+        /* The actual app card, its height is constrained to fit within main-content-area */
+        .app-card {
+            background-color: #1f2937; /* gray-800 */
+            border: 1px solid #374151; /* gray-700 */
+            border-radius: 0.75rem; /* rounded-xl */
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1); /* shadow-2xl */
+            width: 100%;
+            max-width: 28rem; /* max-w-md */
+            /* Adjusted padding to be p-3 for more compact look, similar to toll tracker */
+            padding: 0.75rem;
+            display: flex;
+            flex-direction: column; /* Stack elements inside the card vertically */
+            max-height: calc(100vh - 5rem); /* Adjusted calculation for viewport height */
+            overflow-y: hidden; /* Control scrolling for the main card itself via views */
+        }
+
+        /* Custom styles for button hover effects and active states */
+        .btn-custom {
+            transition: transform 0.1s ease-in-out, background-color 0.1s ease-in-out, box-shadow 0.1s ease-in-out;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
+        }
+        .btn-custom:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 10px rgba(0, 0, 0, 0.2);
+        }
+        .btn-custom:active {
+            transform: translateY(0);
+            box-shadow: none;
+        }
+
+        input[type="number"] {
+            -moz-appearance: textfield; /* Firefox */
+        }
+        input[type="number"]::-webkit-outer-spin-button,
+        input[type="number"]::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+
+        /* Tab bar styles - Copied directly from toll road code */
+        .tab-bar {
+            flex-shrink: 0; /* Prevent tab bar from shrinking */
+            background-color: #111827; /* Darker gray for tab bar (gray-900 equivalent) */
+            border-top: 1px solid #374151; /* gray-700 */
+            padding: 0.75rem 1rem; /* py-3 px-4 */
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+        }
+        .tab-button {
+            flex: 1; /* Equal width buttons */
+            text-align: center;
+            padding: 0.5rem 1rem; /* py-2 px-4 */
+            border-radius: 0.5rem; /* rounded-lg */
+            font-size: 1.125rem; /* text-lg */
+            font-weight: 700; /* font-bold */
+            margin: 0 0.25rem; /* mx-1 */
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1); /* shadow-lg */
+            cursor: pointer;
+        }
+        .tab-button.active {
+            background-color: #2563eb; /* blue-600 */
+            color: white;
+        }
+        .tab-button:not(.active) {
+            background-color: #4b5563; /* gray-700 */
+            color: #d1d5db; /* gray-300 */
+        }
+
+        /* History list specific scrolling (only this list scrolls if needed) */
+        #transaction-history-list {
+            flex-grow: 1; /* Occupy remaining space in history view */
+            overflow-y: auto; /* Only this specific list scrolls */
+            -webkit-overflow-scrolling: touch; /* Smooth scrolling on iOS */
+            padding-right: 0.5rem; /* Add some padding for the scrollbar */
+        }
+        /* Hide scrollbar for webkit browsers */
+        #transaction-history-list::-webkit-scrollbar {
+            width: 0; /* Hide scrollbar */
+            background: transparent; /* Make scrollbar transparent */
+        }
+    </style>
+</head>
+<body>
+    <div class="main-content-area">
+        <div class="app-card">
+            <!-- Tracker View -->
+            <div id="tracker-view" class="flex flex-col flex-grow justify-around h-full px-1 py-2">
+                <h1 class="text-3xl font-bold text-gray-200 mb-6 text-center">Sport Center Parking Fee Tracker</h1>
+
+                <!-- Entry and Exit Time Displays -->
+                <div class="flex justify-between items-start text-sm mb-4">
+                    <div class="text-left">
+                        <p class="text-gray-400">Entry:</p>
+                        <p id="entryTimeDisplay" class="text-blue-300 font-bold">--:--:--</p>
+                    </div>
+                    <div class="text-right">
+                        <p class="text-gray-400">Exit:</p>
+                        <p id="exitTimeDisplay" class="text-blue-300 font-bold">--:--:--</p>
+                    </div>
+                </div>
+
+                <!-- Elapsed Time Display -->
+                <div class="text-center mb-4">
+                    <h2 class="text-xl font-semibold text-gray-200 mb-2">Elapsed Time:</h2>
+                    <p id="elapsedTimeDisplay" class="text-6xl font-extrabold text-blue-400 tracking-tight">00:00:00</p>
+                </div>
+
+                <!-- Cost Breakdown Displays -->
+                <div class="flex justify-between items-end mb-4"> <!-- Removed flex-wrap and gap-y-4 -->
+                    <div class="flex flex-col items-start text-left flex-1 pr-1"> <!-- Removed w-1/2, added flex-1, adjusted padding -->
+                        <h2 class="text-base font-semibold text-gray-200 mb-1">Cost pre-tax:</h2>
+                        <p id="costPreTaxDisplay" class="text-3xl font-extrabold text-green-400 tracking-tight">$0.00</p>
+                    </div>
+                    <div class="flex flex-col items-center text-center flex-1 px-1"> <!-- Added flex-1, adjusted padding -->
+                        <h2 class="text-base font-semibold text-gray-200 mb-1">Tax (7%):</h2>
+                        <p id="taxDisplay" class="text-3xl font-extrabold text-green-400 tracking-tight">$0.00</p>
+                    </div>
+                    <div class="flex flex-col items-end text-right flex-1 pl-1"> <!-- Removed w-1/2, added flex-1, adjusted padding -->
+                        <h2 class="text-base font-semibold text-gray-200 mb-1">Total Cost:</h2>
+                        <p id="totalCostDisplay" class="text-3xl font-extrabold text-green-400 tracking-tight">$0.00</p>
+                    </div>
+                </div>
+
+                <!-- Current Balance Display -->
+                <div class="text-center mb-6">
+                    <h2 class="text-xl font-semibold text-gray-200 mb-2">Current Balance:</h2>
+                    <p id="currentBalanceDisplay" class="text-6xl font-extrabold text-blue-400 tracking-tight">$0.00</p>
+                </div>
+
+                <!-- Action Buttons (Entry/Exit) - Moved Here -->
+                <div class="flex flex-col sm:flex-row justify-center space-y-4 sm:space-y-0 sm:space-x-4 mt-6">
+                    <button id="entryBtn"
+                            class="btn-custom w-full sm:flex-1 px-6 py-3 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:ring-opacity-50">
+                        Entry
+                    </button>
+                    <button id="exitBtn"
+                            class="btn-custom w-full sm:flex-1 px-6 py-3 bg-red-600 text-white font-semibold rounded-lg hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-600 focus:ring-opacity-50"
+                            disabled>
+                        Exit
+                    </button>
+                </div>
+
+                <!-- Exit Balance Section - Moved Below Action Buttons -->
+                <div class="flex flex-col sm:flex-row items-center justify-center space-y-3 sm:space-y-0 sm:space-x-3 mt-4">
+                    <input type="number" id="exitBalanceInput" placeholder="Enter Exit Balance ($)"
+                           class="w-full sm:flex-1 p-3 border border-gray-600 bg-gray-700 text-white rounded-lg text-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent shadow-sm placeholder-gray-400"
+                           step="0.01" min="0">
+                    <button id="setExitBalanceBtn"
+                            class="btn-custom w-full sm:w-auto px-6 py-3 bg-indigo-600 text-white font-semibold rounded-lg hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-600 focus:ring-opacity-50"
+                            disabled>
+                        Set Exit Balance
+                    </button>
+                </div>
+
+                <!-- Message Box -->
+                <div id="messageBox" class="mt-4 p-3 rounded-lg text-white font-medium text-center hidden"></div>
+            </div>
+
+            <!-- History View (hidden by default) -->
+            <div id="history-view" class="hidden flex flex-col flex-grow py-2 px-1">
+                <h2 class="text-xl font-semibold text-gray-200 mb-4 text-center">Parking History</h2>
+                <div id="transaction-history-list" class="bg-gray-700 p-4 rounded-lg border border-gray-600 flex-grow">
+                    <p id="no-transactions-message" class="text-gray-400 text-center text-sm">No parking sessions yet.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tab Navigation -->
+    <div class="tab-bar">
+        <button id="show-tracker-btn" class="tab-button active">Tracker</button>
+        <button id="show-history-btn" class="tab-button">History</button>
+    </div>
+
+    <script>
+        let entryTime = null; // Stores the timestamp when 'Entry' is pressed
+        let exitTime = null;  // Stores the timestamp when 'Exit' is pressed
+        let balanceAtEntry = 0; // Stores the currentBalance when 'Entry' is pressed
+        let timerInterval = null; // Stores the ID of the setInterval timer
+        let currentBalance = parseFloat(localStorage.getItem('parkingBalance')) || 0.00; // Initialize balance from local storage
+        let transactions = JSON.parse(localStorage.getItem('parkingTransactions')) || []; // Load history from local storage
+
+        // Get DOM elements
+        const entryTimeDisplay = document.getElementById('entryTimeDisplay');
+        const exitTimeDisplay = document.getElementById('exitTimeDisplay');
+        const elapsedTimeDisplay = document.getElementById('elapsedTimeDisplay');
+        const costPreTaxDisplay = document.getElementById('costPreTaxDisplay');
+        const taxDisplay = document.getElementById('taxDisplay');
+        const totalCostDisplay = document.getElementById('totalCostDisplay');
+        const currentBalanceDisplay = document.getElementById('currentBalanceDisplay');
+        const exitBalanceInput = document.getElementById('exitBalanceInput');
+        const setExitBalanceBtn = document.getElementById('setExitBalanceBtn');
+        const entryBtn = document.getElementById('entryBtn');
+        const exitBtn = document.getElementById('exitBtn');
+        const messageBox = document.getElementById('messageBox');
+
+        // History tab elements
+        const trackerView = document.getElementById('tracker-view');
+        const historyView = document.getElementById('history-view');
+        const showTrackerTabBtn = document.getElementById('show-tracker-btn');
+        const showHistoryTabBtn = document.getElementById('show-history-btn');
+        const transactionHistoryList = document.getElementById('transaction-history-list');
+        const noTransactionsMessage = document.getElementById('no-transactions-message');
+
+
+        // Parking rate constant
+        const RATE_PER_MINUTE = 0.04; // $0.04 per minute
+        const FREE_HOURS_MILLISECONDS = 60 * 60 * 1000; // 1 hour in milliseconds
+        const TAX_RATE = 0.07; // 7% tax
+
+        /**
+         * Formats a given Date object into a HH:MM:SS string.
+         * @param {Date} date - The Date object to format.
+         * @returns {string} The formatted time string (e.g., "14:35:01").
+         */
+        function formatTime(date) {
+            if (!date) return '--:--:--';
+            const hours = String(date.getHours()).padStart(2, '0');
+            const minutes = String(date.getMinutes()).padStart(2, '0');
+            const seconds = String(date.getSeconds()).padStart(2, '0');
+            return `${hours}:${minutes}:${seconds}`;
+        }
+
+        /**
+         * Formats a given Date object into a full date and time string with DD-MMM-YYYY format.
+         * @param {Date} date - The Date object to format.
+         * @returns {string} The formatted date and time string.
+         */
+        function formatDateTime(date) {
+            if (!date) return 'N/A';
+
+            const options = {
+                day: '2-digit',
+                month: 'short', // 'Jan', 'Feb', etc.
+                year: 'numeric'
+            };
+            const datePart = date.toLocaleDateString('en-US', options).replace(/(\w{3})\.? (\d{1,2}), (\d{4})/, '$2-$1-$3');
+            // toLocaleDateString might give "Jan 01, 2023", need to reorder to "01-Jan-2023"
+            const timePart = String(date.getHours()).padStart(2, '0') + ':' +
+                             String(date.getMinutes()).padStart(2, '0') + ':' +
+                             String(date.getSeconds()).padStart(2, '0');
+
+            // Example output: "01-Jan-2023 14:35:01"
+            return `${datePart} ${timePart}`;
+        }
+
+
+        /**
+         * Formats milliseconds into a HH:MM:SS string.
+         * @param {number} ms - The number of milliseconds to format.
+         * @returns {string} The formatted elapsed time string.
+         */
+        function formatElapsedTime(ms) {
+            const totalSeconds = Math.floor(ms / 1000);
+            const hours = Math.floor(totalSeconds / 3600);
+            const minutes = Math.floor((totalSeconds % 3600) / 60);
+            const seconds = totalSeconds % 60;
+
+            return [hours, minutes, seconds]
+                .map(unit => String(unit).padStart(2, '0'))
+                .join(':');
+        }
+
+        /**
+         * Calculates the parking cost based on entry time and elapsed time.
+         * @param {number} entryTimestamp - The timestamp of the entry time.
+         * @param {number} elapsedMilliseconds - The total elapsed time in milliseconds.
+         * @returns {{preTax: number, tax: number, total: number}} An object containing pre-tax, tax, and total cost.
+         */
+        function calculateCost(entryTimestamp, elapsedMilliseconds) {
+            if (!entryTimestamp || elapsedMilliseconds <= 0) {
+                return { preTax: 0, tax: 0, total: 0 };
+            }
+
+            const entryDate = new Date(entryTimestamp);
+            const dayOfWeek = entryDate.getDay(); // 0 = Sunday, 1 = Monday, ..., 6 = Saturday
+            const entryHour = entryDate.getHours();
+
+            let chargeableMilliseconds = elapsedMilliseconds;
+
+            // Condition 1: Weekday before 3:00 PM (Monday-Friday, 0-14:59)
+            if (dayOfWeek >= 1 && dayOfWeek <= 5 && (entryHour < 15)) {
+                // No free hour, chargeableMilliseconds remains as elapsedMilliseconds
+            }
+            // Condition 2: Weekday at 3:00 PM or later (Monday-Friday, 15:00 onwards)
+            // Condition 3: Weekend at any time (Saturday or Sunday)
+            else if ((dayOfWeek >= 1 && dayOfWeek <= 5 && (entryHour >= 15)) || dayOfWeek === 0 || dayOfWeek === 6) {
+                // First hour is free
+                chargeableMilliseconds = Math.max(0, elapsedMilliseconds - FREE_HOURS_MILLISECONDS);
+            }
+
+            const chargeableMinutes = chargeableMilliseconds / (60 * 1000);
+            const costPreTax = chargeableMinutes * RATE_PER_MINUTE;
+            const tax = costPreTax * TAX_RATE;
+            const totalCost = costPreTax + tax;
+
+            return {
+                preTax: costPreTax,
+                tax: tax,
+                total: totalCost
+            };
+        }
+
+        /**
+         * Updates the elapsed time, cost, and current balance displays.
+         */
+        function updateDisplays() {
+            let currentCost = { preTax: 0, tax: 0, total: 0 };
+            let elapsedMs = 0;
+            if (entryTime) {
+                const currentTime = Date.now();
+                elapsedMs = currentTime - entryTime;
+                elapsedTimeDisplay.textContent = formatElapsedTime(elapsedMs);
+                currentCost = calculateCost(entryTime, elapsedMs);
+            } else {
+                elapsedTimeDisplay.textContent = '00:00:00';
+            }
+            costPreTaxDisplay.textContent = `$${currentCost.preTax.toFixed(2)}`;
+            taxDisplay.textContent = `$${currentCost.tax.toFixed(2)}`;
+            totalCostDisplay.textContent = `$${currentCost.total.toFixed(2)}`;
+
+            // Update Current Balance UI
+            currentBalanceDisplay.textContent = `$${currentBalance.toFixed(2)}`;
+            // Balance turns red if less than Total Cost AND there's an active session
+            if (currentBalance < currentCost.total && elapsedMs > 0) {
+                currentBalanceDisplay.classList.remove('text-blue-400');
+                currentBalanceDisplay.classList.add('text-red-400');
+            } else {
+                currentBalanceDisplay.classList.remove('text-red-400');
+                currentBalanceDisplay.classList.add('text-blue-400');
+            }
+        }
+
+        /**
+         * Displays a message to the user in a styled box.
+         * @param {string} message - The message to display.
+         * @param {string} type - The type of message (e.g., 'success', 'error', 'info').
+         */
+        function showMessage(message, type) {
+            messageBox.textContent = message;
+            messageBox.classList.remove('hidden', 'bg-green-600', 'bg-red-600', 'bg-blue-600');
+            if (type === 'success') {
+                messageBox.classList.add('bg-green-600');
+            } else if (type === 'error') {
+                messageBox.classList.add('bg-red-600');
+            } else {
+                messageBox.classList.add('bg-blue-600'); // Default info
+            }
+            // Hide message after a few seconds
+            setTimeout(() => {
+                messageBox.classList.add('hidden');
+            }, 5000);
+        }
+
+        /**
+         * Handles the 'Entry' button click event.
+         */
+        entryBtn.addEventListener('click', () => {
+            // Clear any existing timer to prevent multiple timers running
+            if (timerInterval) {
+                clearInterval(timerInterval);
+            }
+
+            entryTime = Date.now();
+            balanceAtEntry = currentBalance; // Capture balance at the moment of entry
+            exitTime = null; // Clear exit time when entering again
+            localStorage.setItem('parkingEntryTime', entryTime);
+            localStorage.removeItem('parkingExitTime'); // Remove old exit time
+            localStorage.setItem('parkingBalanceAtEntry', balanceAtEntry); // Save balance at entry
+
+            entryTimeDisplay.textContent = formatTime(new Date(entryTime));
+            exitTimeDisplay.textContent = formatTime(null); // Clear exit display
+
+            // Start the timer to update elapsed time and cost every second
+            timerInterval = setInterval(updateDisplays, 1000);
+            updateDisplays(); // Update immediately
+
+            entryBtn.disabled = true;
+            exitBtn.disabled = false;
+            setExitBalanceBtn.disabled = true; // Disable set balance until exit is pressed
+            showMessage('Parking session started!', 'success');
+        });
+
+        /**
+         * Handles the 'Exit' button click event.
+         */
+        exitBtn.addEventListener('click', () => {
+            if (!entryTime) {
+                showMessage('Please press "Entry" first to start a session.', 'error');
+                return;
+            }
+
+            // Stop the timer
+            if (timerInterval) {
+                clearInterval(timerInterval);
+                timerInterval = null;
+            }
+
+            exitTime = Date.now();
+            localStorage.setItem('parkingExitTime', exitTime); // Save exit time for potential logging
+
+            exitTimeDisplay.textContent = formatTime(new Date(exitTime));
+            updateDisplays(); // Final update of elapsed time and cost for display
+
+            entryBtn.disabled = true; // Keep disabled until session is logged
+            exitBtn.disabled = true;
+            setExitBalanceBtn.disabled = false; // Enable Set Exit Balance button
+            showMessage('Parking session ended. Please enter Exit Balance to log.', 'info');
+        });
+
+        /**
+         * Handles setting the manual current balance (via the Exit Balance field) and logging the session.
+         */
+        setExitBalanceBtn.addEventListener('click', () => {
+            const inputValue = parseFloat(exitBalanceInput.value);
+
+            if (entryTime === null || exitTime === null) {
+                showMessage('No active session to log. Please start and end a session first.', 'error');
+                return;
+            }
+
+            if (isNaN(inputValue) || inputValue < 0) {
+                showMessage('Please enter a valid positive number for the Exit Balance.', 'error');
+                return;
+            }
+
+            let recordedExitBalance = inputValue;
+            currentBalance = recordedExitBalance; // Update current balance with the entered exit balance
+            localStorage.setItem('parkingBalance', currentBalance.toFixed(2));
+
+
+            // Calculate final costs and elapsed time for history record
+            const finalElapsedMilliseconds = exitTime - entryTime;
+            const finalCosts = calculateCost(entryTime, finalElapsedMilliseconds);
+
+            // Add transaction to history
+            transactions.unshift({ // Add to the beginning for reverse chronological order
+                id: Date.now() + Math.random(), // Unique ID
+                entryTimestamp: entryTime,
+                exitTimestamp: exitTime,
+                elapsedMilliseconds: finalElapsedMilliseconds,
+                balanceAtEntry: balanceAtEntry,
+                exitBalance: recordedExitBalance,
+                costPreTax: finalCosts.preTax,
+                tax: finalCosts.tax,
+                totalCost: finalCosts.total
+            });
+            // Keep only the latest 50 transactions to prevent history from getting too long
+            if (transactions.length > 50) {
+                transactions.pop();
+            }
+            localStorage.setItem('parkingTransactions', JSON.stringify(transactions));
+
+            // Reset for next session
+            entryTime = null;
+            exitTime = null;
+            balanceAtEntry = 0;
+            localStorage.removeItem('parkingEntryTime');
+            localStorage.removeItem('parkingExitTime');
+            localStorage.removeItem('parkingBalanceAtEntry');
+            exitBalanceInput.value = ''; // Clear exit balance input
+
+            updateDisplays(); // Update all displays to their default (cleared) state
+
+            entryBtn.disabled = false;
+            exitBtn.disabled = true;
+            setExitBalanceBtn.disabled = true;
+            showMessage('Parking session logged and current balance updated!', 'success');
+
+            // If history tab is active, re-render it
+            if (!historyView.classList.contains('hidden')) {
+                renderTransactionHistory();
+            }
+        });
+
+        /**
+         * Switches the active view between 'tracker' and 'history'.
+         * @param {string} viewName - 'tracker' or 'history'.
+         */
+        function switchView(viewName) {
+            if (viewName === 'tracker') {
+                trackerView.classList.remove('hidden');
+                historyView.classList.add('hidden');
+                showTrackerTabBtn.classList.add('active');
+                showHistoryTabBtn.classList.remove('active');
+            } else { // viewName === 'history'
+                historyView.classList.remove('hidden');
+                trackerView.classList.add('hidden');
+                showHistoryTabBtn.classList.add('active');
+                showTrackerTabBtn.classList.remove('active');
+                renderTransactionHistory(); // Re-render history whenever the tab is opened
+            }
+            // Ensure the main card's scroll position is reset when switching views
+            document.querySelector('.app-card').scrollTop = 0;
+        }
+
+        /**
+         * Deletes a transaction by its ID and re-renders the history.
+         * @param {number} id - The unique ID of the transaction to delete.
+         */
+        function deleteTransaction(id) {
+            const initialLength = transactions.length;
+            transactions = transactions.filter(t => t.id !== id);
+
+            if (transactions.length < initialLength) {
+                localStorage.setItem('parkingTransactions', JSON.stringify(transactions));
+                renderTransactionHistory(); // Re-render the updated history
+                showMessage('History entry deleted.', 'info');
+            }
+        }
+
+        /**
+         * Renders the transaction history list in the UI.
+         */
+        function renderTransactionHistory() {
+            transactionHistoryList.innerHTML = ''; // Clear existing entries
+
+            if (transactions.length === 0) {
+                noTransactionsMessage.style.display = 'block'; // Show "No parking sessions yet."
+                transactionHistoryList.appendChild(noTransactionsMessage);
+                return;
+            } else {
+                noTransactionsMessage.style.display = 'none'; // Hide if there are transactions
+            }
+
+            transactions.forEach((transaction) => {
+                const transactionItem = document.createElement('div');
+                transactionItem.className = 'flex flex-col bg-gray-600 p-3 rounded-md mb-3 last:mb-0 text-sm';
+                transactionItem.setAttribute('data-id', transaction.id); // Set data-id for deletion
+
+                const entryDateTime = formatDateTime(new Date(transaction.entryTimestamp));
+                const exitDateTime = formatDateTime(new Date(transaction.exitTimestamp));
+                const elapsedFormatted = formatElapsedTime(transaction.elapsedMilliseconds);
+                const balanceAtEntryFormatted = `$${transaction.balanceAtEntry.toFixed(2)}`;
+                const exitBalanceFormatted = `$${transaction.exitBalance.toFixed(2)}`;
+                const costPreTaxFormatted = `$${transaction.costPreTax.toFixed(2)}`;
+                const taxFormatted = `$${transaction.tax.toFixed(2)}`;
+                const totalCostFormatted = `$${transaction.totalCost.toFixed(2)}`;
+
+                const actualCost = transaction.balanceAtEntry - transaction.exitBalance;
+                const actualCostFormatted = `$${actualCost.toFixed(2)}`;
+                const actualCostColor = actualCost > 0 ? 'text-red-300' : 'text-green-300'; // Red if spent, green if gained/refunded
+
+                transactionItem.innerHTML = `
+                    <div class="flex justify-between items-center mb-1">
+                        <span class="text-gray-300">Entry:</span>
+                        <span class="text-blue-300 font-bold">${entryDateTime}</span>
+                    </div>
+                    <div class="flex justify-between items-center mb-1">
+                        <span class="text-gray-300">Exit:</span>
+                        <span class="text-blue-300 font-bold">${exitDateTime}</span>
+                    </div>
+                    <div class="flex justify-between items-center mb-1">
+                        <span class="text-gray-300">Elapsed:</span>
+                        <span class="text-white font-bold">${elapsedFormatted}</span>
+                    </div>
+                    <div class="flex justify-between items-center mb-1">
+                        <span class="text-gray-300">Balance @ Entry:</span>
+                        <span class="text-green-300 font-bold">${balanceAtEntryFormatted}</span>
+                    </div>
+                     <div class="flex justify-between items-center mb-1">
+                        <span class="text-gray-300">Exit Balance:</span>
+                        <span class="text-purple-300 font-bold">${exitBalanceFormatted}</span>
+                    </div>
+                    <div class="flex justify-between items-center mb-2">
+                        <span class="text-gray-300">Actual Cost:</span>
+                        <span class="${actualCostColor} font-bold">${actualCostFormatted}</span>
+                    </div>
+                    <div class="border-t border-gray-500 pt-2 mt-2">
+                        <div class="flex justify-between items-center mb-1">
+                            <span class="text-gray-300">Cost pre-tax:</span>
+                            <span class="text-green-300 font-bold">${costPreTaxFormatted}</span>
+                        </div>
+                        <div class="flex justify-between items-center mb-1">
+                            <span class="text-gray-300">Tax:</span>
+                            <span class="text-green-300 font-bold">${taxFormatted}</span>
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <span class="text-gray-300">Total Cost:</span>
+                            <span class="text-green-300 font-bold">${totalCostFormatted}</span>
+                        </div>
+                    </div>
+                    <button class="delete-transaction-btn mt-2 bg-red-500 hover:bg-red-600 text-white text-xs px-2 py-1 rounded self-end">Delete</button>
+                `;
+                transactionHistoryList.appendChild(transactionItem);
+            });
+
+            // Attach event listeners to new delete buttons
+            document.querySelectorAll('.delete-transaction-btn').forEach(button => {
+                button.addEventListener('click', (event) => {
+                    const transactionElement = event.target.closest('[data-id]');
+                    if (transactionElement) {
+                        // Using parseFloat because Date.now() returns a number
+                        const transactionIdToDelete = parseFloat(transactionElement.dataset.id);
+                        deleteTransaction(transactionIdToDelete);
+                    }
+                });
+            });
+        }
+
+
+        /**
+         * Initializes the tracker state on page load.
+         * Checks local storage for previous session data.
+         */
+        function initializeTracker() {
+            const savedEntryTime = localStorage.getItem('parkingEntryTime');
+            const savedExitTime = localStorage.getItem('parkingExitTime');
+            const savedBalanceAtEntry = localStorage.getItem('parkingBalanceAtEntry');
+
+            if (savedEntryTime) {
+                entryTime = parseInt(savedEntryTime);
+                balanceAtEntry = parseFloat(savedBalanceAtEntry) || 0;
+                entryTimeDisplay.textContent = formatTime(new Date(entryTime));
+
+                if (savedExitTime) {
+                    // Session was ended, potentially awaiting logging
+                    exitTime = parseInt(savedExitTime);
+                    exitTimeDisplay.textContent = formatTime(new Date(exitTime));
+                    // Display details of the completed session
+                    elapsedTimeDisplay.textContent = formatElapsedTime(exitTime - entryTime);
+                    const finalCost = calculateCost(entryTime, exitTime - entryTime);
+                    costPreTaxDisplay.textContent = `$${finalCost.preTax.toFixed(2)}`;
+                    taxDisplay.textContent = `$${finalCost.tax.toFixed(2)}`;
+                    totalCostDisplay.textContent = `$${finalCost.total.toFixed(2)}`;
+
+                    entryBtn.disabled = true; // Cannot start new until logged
+                    exitBtn.disabled = true; // Already exited
+                    setExitBalanceBtn.disabled = false; // Must set balance to log
+
+                    showMessage('Session ended. Please enter Exit Balance to log.', 'info');
+
+                } else {
+                    // Session was running when page was closed/refreshed
+                    entryBtn.disabled = true;
+                    exitBtn.disabled = false;
+                    setExitBalanceBtn.disabled = true; // Can't set balance if not exited
+                    timerInterval = setInterval(updateDisplays, 1000);
+                    showMessage('Resuming parking session...', 'info');
+                }
+            } else {
+                // No previous session data
+                entryTimeDisplay.textContent = formatTime(null);
+                exitTimeDisplay.textContent = formatTime(null);
+                elapsedTimeDisplay.textContent = '00:00:00';
+                costPreTaxDisplay.textContent = '$0.00';
+                taxDisplay.textContent = '$0.00';
+                totalCostDisplay.textContent = '$0.00';
+                entryBtn.disabled = false;
+                exitBtn.disabled = true;
+                setExitBalanceBtn.disabled = true;
+            }
+            updateDisplays(); // Initial render of all displays (00:00:00 or current)
+            switchView('tracker'); // Start on the Tracker tab
+        }
+
+        // Initialize tracker on window load
+        window.onload = initializeTracker;
+
+        // Event listeners for tab buttons
+        showTrackerTabBtn.addEventListener('click', () => switchView('tracker'));
+        showHistoryTabBtn.addEventListener('click', () => switchView('history'));
+    </script>
+</body>
+</html>

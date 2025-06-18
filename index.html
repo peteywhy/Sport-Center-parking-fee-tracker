@@ -12,14 +12,16 @@
         html, body {
             height: 100%; /* Important for full height */
             margin: 0;
-            padding: 0;
+            padding: 0; /* Remove body padding */
             box-sizing: border-box;
             background-color: #1a202c; /* Consistent dark background */
             /* Body is a flex container to push content and footer apart */
             display: flex;
             flex-direction: column;
             overflow: hidden; /* Prevent body scrolling */
-            padding-bottom: 80px; /* Add padding to account for fixed bottom tab bar */
+            /* The padding-bottom will now be dynamically managed by the app-card taking 100% height
+               and the fixed tab-bar sitting over the bottom of the main-content-area.
+               So, no need for body padding-bottom if app-card handles its height correctly. */
         }
         body {
             font-family: 'Inter', sans-serif;
@@ -29,25 +31,34 @@
         .main-content-area {
             flex-grow: 1; /* Allows this div to grow and take available space */
             display: flex;
-            align-items: center; /* Center content vertically */
+            align-items: stretch; /* Stretch content vertically to fill space */
             justify-content: center; /* Center content horizontally */
             overflow: hidden; /* Crucial to contain content without making body scroll */
-            padding: 1rem; /* Added padding to ensure content isn't flush with edges */
+            padding: 0; /* Remove padding from main content area */
         }
 
         /* The actual app card, its height is constrained to fit within main-content-area */
         .app-card {
             background-color: #1f2937; /* gray-800 */
             border: 1px solid #374151; /* gray-700 */
-            border-radius: 0.75rem; /* rounded-xl */
-            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1); /* shadow-2xl */
-            width: 100%;
-            max-width: 28rem; /* max-w-md */
-            padding: 0.75rem;
+            border-radius: 0; /* Remove rounded-xl on smallest screens for edge-to-edge look */
+            box-shadow: none; /* Remove shadow on smallest screens */
+            width: 100%; /* Take full width on mobile */
+            max-width: none; /* Override max-width on mobile to allow full width */
+            padding: 0; /* Remove card padding on mobile */
             display: flex;
             flex-direction: column; /* Stack elements inside the card vertically */
             height: 100%; /* Make app-card fill 100% of its parent's height */
             overflow: hidden; /* Prevent scrolling on the card itself */
+            position: relative; /* Needed for absolute positioning of message box if we use it later */
+
+            /* Responsive adjustments for larger screens */
+            @media (min-width: 640px) { /* sm breakpoint */
+                border-radius: 0.75rem; /* rounded-xl */
+                box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1); /* shadow-2xl */
+                max-width: 28rem; /* max-w-md */
+                padding: 0.75rem; /* Re-introduce padding */
+            }
         }
 
         /* Custom styles for button hover effects and active states */
@@ -114,9 +125,10 @@
             flex-grow: 1;
             display: flex; /* Make it a flex container */
             flex-direction: column; /* Stack children vertically */
-            justify-content: flex-start; /* Align content to the top */
+            justify-content: space-between; /* Distribute space to fill height */
             overflow: hidden; /* STRICTLY PREVENT SCROLLING ON TRACKER VIEW */
-            padding-right: 0; /* No scrollbar padding */
+            padding: 1rem; /* Add consistent padding for content inside the view */
+            box-sizing: border-box; /* Include padding in height calculation */
             width: 100%; /* Ensure it takes full width within app-card */
             height: 100%; /* Ensure it takes full height within app-card */
         }
@@ -126,7 +138,8 @@
             flex-grow: 1;
             display: flex;
             flex-direction: column;
-            padding-right: 0; /* Remove scrollbar padding by default */
+            padding: 1rem; /* Consistent padding */
+            box-sizing: border-box; /* Include padding in height calculation */
             width: 100%;
             height: 100%;
             overflow-y: auto; /* Enable vertical scrolling for the history view content */
@@ -158,11 +171,11 @@
     <div class="main-content-area">
         <div class="app-card">
             <!-- Tracker View -->
-            <div id="tracker-view" class="flex flex-col flex-grow justify-start px-1 py-1"> <!-- Reduced py -->
-                <h1 class="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-200 mb-2 text-center">Sport Center Parking Fee Tracker</h1> <!-- Reduced mb -->
+            <div id="tracker-view" class="flex flex-col flex-grow justify-start px-1 py-1"> <!-- No direct padding here, handled by style block -->
+                <h1 class="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-200 mb-2 text-center">Sport Center Parking Fee Tracker</h1>
 
                 <!-- Entry and Exit Time Displays -->
-                <div class="flex justify-between items-start text-xs sm:text-sm mb-1"> <!-- Reduced mb -->
+                <div class="flex justify-between items-start text-xs sm:text-sm mb-1">
                     <div class="text-left">
                         <p class="text-gray-400">Entry:</p>
                         <p id="entryTimeDisplay" class="text-blue-300 font-bold">--:--:--</p>
@@ -174,13 +187,13 @@
                 </div>
 
                 <!-- Elapsed Time Display -->
-                <div class="text-center mb-2"> <!-- Reduced mb -->
-                    <h2 class="text-base sm:text-lg font-semibold text-gray-200 mb-0.5">Elapsed Time:</h2> <!-- Reduced mb -->
+                <div class="text-center mb-2">
+                    <h2 class="text-base sm:text-lg font-semibold text-gray-200 mb-0.5">Elapsed Time:</h2>
                     <p id="elapsedTimeDisplay" class="text-4xl sm:text-5xl lg:text-6xl font-extrabold text-blue-400 tracking-tight">00:00:00</p>
                 </div>
 
                 <!-- Cost Breakdown Displays -->
-                <div class="flex justify-between items-end mb-2"> <!-- Reduced mb -->
+                <div class="flex justify-between items-end mb-2">
                     <div class="flex flex-col items-start text-left flex-1 pr-1">
                         <h2 class="text-sm sm:text-base font-semibold text-gray-200 mb-0.5">Cost pre-tax:</h2>
                         <p id="costPreTaxDisplay" class="text-2xl sm:text-3xl font-extrabold text-green-400 tracking-tight">$0.00</p>
@@ -196,13 +209,13 @@
                 </div>
 
                 <!-- Current Balance Display -->
-                <div class="text-center mb-3"> <!-- Reduced mb -->
-                    <h2 class="text-base sm:text-lg font-semibold text-gray-200 mb-0.5">Current Balance:</h2> <!-- Reduced mb -->
+                <div class="text-center mb-3">
+                    <h2 class="text-base sm:text-lg font-semibold text-gray-200 mb-0.5">Current Balance:</h2>
                     <p id="currentBalanceDisplay" class="text-4xl sm:text-5xl lg:text-6xl font-extrabold text-blue-400 tracking-tight">$0.00</p>
                 </div>
 
                 <!-- Action Buttons (Entry/Exit) -->
-                <div class="flex flex-row justify-between space-x-3 mt-3"> <!-- Changed flex-col sm:flex-row to flex-row and space-y to space-x -->
+                <div class="flex flex-row justify-between space-x-3 mt-3">
                     <button id="entryBtn"
                             class="btn-custom flex-1 px-4 py-2 sm:py-3 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:ring-opacity-50 text-sm sm:text-base">
                         Entry
@@ -215,7 +228,7 @@
                 </div>
 
                 <!-- Exit Balance Section -->
-                <div class="flex flex-col sm:flex-row items-center justify-center space-y-2 sm:space-y-0 sm:space-x-3 mt-2"> <!-- Reduced mt -->
+                <div class="flex flex-col sm:flex-row items-center justify-center space-y-2 sm:space-y-0 sm:space-x-3 mt-3"> <!-- Changed mt to 3 for slightly more space -->
                     <input type="number" id="exitBalanceInput" placeholder="Enter Exit Balance ($)"
                            class="w-full sm:flex-1 p-2 sm:p-3 border border-gray-600 bg-gray-700 text-white rounded-lg text-sm sm:text-base focus:ring-2 focus:ring-blue-500 focus:border-transparent shadow-sm placeholder-gray-400"
                            step="0.01" min="0">
@@ -227,7 +240,7 @@
                 </div>
 
                 <!-- Message Box -->
-                <div id="messageBox" class="mt-2 p-2 rounded-lg text-white font-medium text-center text-sm hidden"></div> <!-- Reduced mt, p -->
+                <div id="messageBox" class="mt-2 p-2 rounded-lg text-white font-medium text-center text-sm hidden"></div>
             </div>
 
             <!-- History View (hidden by default) -->
